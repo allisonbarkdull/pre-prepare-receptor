@@ -20,44 +20,53 @@ A Python tool to prepare receptor-ligand systems for docking.
 
 ### Set up environment
 
+
 Install the required packages using Micromamba:
-
-micromamba install -c conda-forge openmm openmmtools openff-toolkit openmmforcefields espaloma pdbfixer parmed mdanalysis ambertools rdkit pandas deeptime pyemma
-
-micromamba install -c mdtools cvpack
-
-micromamba install -c conda-forge prody
+```bash
+$ micromamba install -c conda-forge openmm openmmtools openff-toolkit openmmforcefields espaloma pdbfixer parmed mdanalysis ambertools rdkit pandas deeptime pyemma
+```
+```bash
+$ micromamba install -c mdtools cvpack
+```
+```bash
+$ micromamba install -c conda-forge prody
+```
 
 # Clone and install dependencies
 
 ### Autopath
-git clone git@github.com:forlilab/autopath.git
-cd autopath
-
+```bash
+$ git clone git@github.com:forlilab/autopath.git
+$ cd autopath
+```
 # Option 1: allison-change branch
-git checkout allison-change
-pip install -e .
-
+```bash
+$ git checkout allison-change
+$ pip install -e .
+```
 # Option 2: lipids branch
-git checkout lipids
-pip install -e .
-
+```bash
+$ git checkout lipids
+$ pip install -e .
+```
 ### Scrubber
-git clone git@github.com:forlilab/scrubber.git
-cd scrubber
-
-pip install -e .
-
+```bash
+$ git clone git@github.com:forlilab/scrubber.git
+$ cd scrubber
+$ pip install -e .
+```
 ---
 
 ## Usage
 
 ### Step 0: Analyze ligand neighborhood in a receptor
-python pre_prepare_receptor.py --mode step0 --input_pdb receptor.pdb --ligand_sdf ligand.sdf
-
+```bash
+$ python pre_prepare_receptor.py --mode step0 --input_pdb receptor.pdb --ligand_sdf ligand.sdf
+```
 ### Step 1: Prepare system for simulation
-python pre_prepare_receptor.py --mode step1 --input_pdb receptor.pdb --ligand_sdf ligand.sdf --output_dir prepared_system
-
+```bash
+$ python pre_prepare_receptor.py --mode step1 --input_pdb receptor.pdb --ligand_sdf ligand.sdf --output_dir prepared_system
+```
 
 ---
 
