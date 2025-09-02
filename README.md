@@ -4,11 +4,11 @@ A Python tool to prepare receptor-ligand systems for docking.
 
 ## Features
 
-- **Step 0: Analyze ligand neighborhood in a receptor**
+- Step 0: Analyze ligand neighborhood in a receptor
   - Detect nearby waters, cofactors, histidines, polar rotors, amide flips, alternative locations, and other protonatable residues.
   - Generate PyMOL commands for visualization.
 
-- **Step 1: Prepare system for simulation**
+- Step 1: Prepare system for simulation
   - Fix missing atoms/residues using PDBFixer
   - Add hydrogens and handle alternative locations
   - Include selected waters and cofactors
@@ -20,103 +20,79 @@ A Python tool to prepare receptor-ligand systems for docking.
 
 ### Set up environment
 
-Install the required packages using **Micromamba**:
+Install the required packages using Micromamba:
 
-```bash
-# Core molecular modeling packages
 micromamba install -c conda-forge openmm openmmtools openff-toolkit openmmforcefields espaloma pdbfixer parmed mdanalysis ambertools rdkit pandas deeptime pyemma
 
 micromamba install -c mdtools cvpack
 
 micromamba install -c conda-forge prody
 
+# Clone and install dependencies
+
+# Autopath
 git clone git@github.com:forlilab/autopath.git
 cd autopath
 
-# Option 1: 
+# Option 1
 git checkout allison-change
 pip install -e .
 
-# Option 2: 
+# Option 2
 git checkout lipids
 pip install -e .
 
+# Scrubber
 git clone git@github.com:forlilab/scrubber.git
 cd scrubber
 pip install -e .
 
+---
+
 ## Usage
 
 # Step 0: Analyze ligand neighborhood in a receptor
-python pre_prepare_receptor.py --mode step0 --protein_pdb receptor.pdb --ligand_sdf ligand.sdf
+python pre_prepare_receptor.py --mode step0 --input_pdb receptor.pdb --ligand_sdf ligand.sdf
 
 # Step 1: Prepare system for simulation
-python pre_prepare_receptor.py --mode step1 --protein_pdb receptor.pdb --ligand_sdf ligand.sdf --output_dir prepared_system
+python pre_prepare_receptor.py --mode step1 --input_pdb receptor.pdb --ligand_sdf ligand.sdf --output_dir prepared_system
+
+Replace receptor.pdb and ligand.sdf with your files. The --output_dir specifies where to save prepared systems.
+
+---
 
 ## Command-Line Interface (CLI)
 
-### Required Arguments
---mode [step0|step1]  
-  Choose the preparation step:  
-  - step0 → Analyze ligand neighborhood in the receptor. Detect nearby waters, cofactors, histidines, protonatable residues, alternative locations, and flippable residues. Generates a PyMOL selection script.  
-  - step1 → Prepare system for simulation. Fix missing atoms/residues, add hydrogens, include selected waters/cofactors, set protonation states, handle alternative locations, build solvated/membrane system, and equilibrate with restraints.  
+# Required Arguments
+--mode [step0|step1]
+  Choose the preparation step:
+    step0 → Analyze ligand neighborhood (waters, cofactors, histidines, alternative locations, flippable residues). Generates PyMOL script.
+    step1 → Prepare system: fix missing atoms/residues, add hydrogens, include waters/cofactors, set protonation, equilibrate with restraints.
 
---input_pdb <PDB_FILE>  
-  Path to the receptor PDB file to prepare.
+--input_pdb <PDB_FILE>
+  Path to the receptor PDB file.
 
-### Ligand Input Options
---ligand_sdf <SDF_FILE>  
-  Path to the ligand SDF file.  
+# Ligand Input Options
+--ligand_sdf <SDF_FILE>       Ligand SDF file path.
+--ligand_resname <RESNAME>    Ligand residue name (e.g., ATP).
+--ligand_chain <CHAIN_ID>     Ligand chain ID (e.g., A).
+--ligand_resnum <RESNUM>      Ligand residue number (overrides resname).
+--ligand_smiles <SMILES>      Optional SMILES string for ligand.
 
---ligand_resname <RESNAME>  
-  Ligand residue name in the PDB (e.g., ATP).  
+# Step 0 Options
+--box_center <X Y Z>          Box center for Step 0 neighborhood analysis (pass instead of ligand).
+--box_lengths <X Y Z>         Box side lengths for Step 0 (pass instead of ligand).
+--cutoff <FLOAT>               Neighborhood cutoff in Å (default: 5.0).
 
---ligand_chain <CHAIN_ID>  
-  Ligand chain ID in the PDB (e.g., A).  
+# Waters and Cofactors
+--water_residues <RESNUM_OR_CHAIN:RESNUM>  Waters to keep (e.g., 101 A:105 Z:301).
+--cofactor <NAME:VAL[:SMILES]>             Cofactor specification. Repeatable.
 
---ligand_resnum <RESNUM>  
-  Ligand residue number (overrides resname selection).  
+# Protein Setup
+--soluble_protein            Set up for soluble protein (no membrane).
+--add-missing-residues       Add missing residues using PDBFixer.
+--keep_terminals             Build N- and C-terminal residues (may increase box size).
 
---ligand_smiles <SMILES_STRING>  
-  Optional SMILES string. If not provided, it will be fetched from RCSB and hydrogens will be added with scrubber. Explicit hydrogens will define the protonation state.
-
-### Step 0 Neighborhood Options
---box_center <X Y Z>  
-  Specify the box center in Å for Step 0 neighborhood analysis (pass instead of a ligand).  
-
---box_lengths <X Y Z>  
-  Specify box side lengths in Å for Step 0 (pass instead of a ligand).  
-
---cutoff <FLOAT>  
-  Neighborhood cutoff distance in Å (default: 5.0).
-
-### Waters and Cofactors
---water_residues <RESNUM_OR_CHAIN:RESNUM>  
-  Residues of waters to keep (e.g., 101 A:105 Z:301).  
-
---cofactor <NAME:VAL[:SMILES]>  
-  Cofactor specification. Repeatable.  
-  Examples:  
-    --cofactor NAD:cofactor_nad.sdf  
-    --cofactor EOH:B:'[O-]C([H])([H])C([H])([H])[H]'
-
-### Protein Setup
---soluble_protein  
-  Set up system for a soluble protein (no membrane).  
-
---add-missing-residues  
-  Add missing residues using PDBFixer.  
-
---keep_terminals  
-  Build N- and C-terminal residues (may increase box size).
-
-### Advanced Residue Handling
---altloc <CHAIN:RESNUM:ALT>  
-  Specify alternative locations for residues. Repeatable.  
-  Example: --altloc A:101:A --altloc B:205:B  
-
---set_template <RESID:CHAIN:VARIANT>  
-  Set residue variants for protonation states. Repeatable.  
-  Example: --set_template 101:B:GLH 45:A:HID
-
-
+# Advanced Residue Handling
+--altloc <CHAIN:RESNUM:ALT>          Alternative locations for residues. Repeatable.
+--set_template <RESID:CHAIN:VARIANT> Set residue variants for protonation states. Repeatable.
