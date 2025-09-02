@@ -34,17 +34,18 @@ micromamba install -c conda-forge prody
 git clone git@github.com:forlilab/autopath.git
 cd autopath
 
-# Option 1
+# Option 1: allison-change branch
 git checkout allison-change
 pip install -e .
 
-# Option 2
+# Option 2: lipids branch
 git checkout lipids
 pip install -e .
 
 ### Scrubber
 git clone git@github.com:forlilab/scrubber.git
 cd scrubber
+
 pip install -e .
 
 ---
