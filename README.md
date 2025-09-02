@@ -69,39 +69,55 @@ Replace receptor.pdb and ligand.sdf with your files. The --output_dir specifies 
     step0 → Analyze ligand neighborhood (waters, cofactors, histidines, alternative locations, flippable residues). Generates PyMOL script.  
     step1 → Prepare system: fix missing atoms/residues, add hydrogens, include waters/cofactors, set protonation, equilibrate with restraints.
 
---input_pdb <PDB_FILE>    Path to the receptor PDB file.
+--input_pdb <PDB_FILE>  
+  Path to the receptor PDB file.
 
 ### Ligand Input Options
---ligand_sdf <SDF_FILE>    Path to the ligand SDF file.
+--ligand_sdf <SDF_FILE>  
+  Path to the ligand SDF file.
 
---ligand_resname <RESNAME>    Ligand residue name in the PDB (e.g., ATP).
+--ligand_resname <RESNAME>  
+  Ligand residue name in the PDB (e.g., ATP).
 
---ligand_chain <CHAIN_ID>    Ligand chain ID in the PDB (e.g., A).
+--ligand_chain <CHAIN_ID>  
+  Ligand chain ID in the PDB (e.g., A).
 
---ligand_resnum <RESNUM>    Ligand residue number (overrides resname selection).
+--ligand_resnum <RESNUM>  
+  Ligand residue number (overrides resname selection).
 
---ligand_smiles <SMILES>    Optional SMILES string for ligand. If not provided, it will be fetched from RCSB and hydrogens added with scrubber. Explicit hydrogens define the protonation state.
+--ligand_smiles <SMILES>  
+  Optional SMILES string for ligand. If not provided, it will be fetched from RCSB and hydrogens added with scrubber. Explicit hydrogens define the protonation state.
 
 ### Step 0 Neighborhood Options
---box_center <X Y Z>    Box center for Step 0 neighborhood analysis (pass instead of ligand).
+--box_center <X Y Z>  
+  Box center for Step 0 neighborhood analysis (pass instead of ligand).
 
---box_lengths <X Y Z>    Box side lengths for Step 0 (pass instead of ligand).
+--box_lengths <X Y Z>  
+  Box side lengths for Step 0 (pass instead of ligand).
 
---cutoff <FLOAT>    Neighborhood cutoff distance in Å (default: 5.0).
+--cutoff <FLOAT>  
+  Neighborhood cutoff distance in Å (default: 5.0).
 
 ### Waters and Cofactors
---water_residues <RESNUM_OR_CHAIN:RESNUM>    Residues of waters to keep (e.g., 101 A:105 Z:301).
+--water_residues <RESNUM_OR_CHAIN:RESNUM>  
+  Residues of waters to keep (e.g., 101 A:105 Z:301).
 
---cofactor <NAME:VAL[:SMILES]>    Cofactor specification. Repeatable.
+--cofactor <NAME:VAL[:SMILES]>  
+  Cofactor specification. Repeatable.
 
 ### Protein Setup
---soluble_protein    Set up system for a soluble protein (no membrane).
+--soluble_protein  
+  Set up system for a soluble protein (no membrane).
 
---add-missing-residues    Add missing residues using PDBFixer.
+--add-missing-residues  
+  Add missing residues using PDBFixer.
 
---keep_terminals    Build N- and C-terminal residues (may increase box size).
+--keep_terminals  
+  Build N- and C-terminal residues (may increase box size).
 
 ### Advanced Residue Handling
---altloc <CHAIN:RESNUM:ALT>    Specify alternative locations for residues. Repeatable.
+--altloc <CHAIN:RESNUM:ALT>  
+  Specify alternative locations for residues. Repeatable.
 
---set_template <RESID:CHAIN:VARIANT>    Set residue variants for protonation states. Repeatable.
+--set_template <RESID:CHAIN:VARIANT>  
+  Set residue variants for protonation states. Repeatable.
