@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-to set up environmet: 
+to set up environment: 
 micromamba install -c conda-forge openmm openmmtools openff-toolkit openmmforcefields espaloma pdbfixer parmed mdanalysis ambertools rdkit pandas deeptime pyemma
 micromamba install -c mdtools cvpack
 micromamba install prody
@@ -746,9 +746,9 @@ def main():
 
     # --- Step 0 neighborhood options ---
     parser.add_argument("--box_center", type=float, nargs=3, default=None,
-                        help="Box center (x y z) in Å for Step 0 neighborhood analysis.")
+                        help="Box center (x y z) in Å for Step 0 neighborhood analysis. Pass this instead of a ligand.")
     parser.add_argument("--box_lengths", type=float, nargs=3, default=None,
-                        help="Box side lengths (x y z) in Å for Step 0 neighborhood analysis.")
+                        help="Box side lengths (x y z) in Å for Step 0 neighborhood analysis. Pass this instead of a ligand.")
     parser.add_argument("--cutoff", type=float, default=5.0, help="Neighborhood cutoff (Å) for Step 0")
 
     # --- Waters and cofactors ---
