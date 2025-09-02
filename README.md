@@ -57,7 +57,6 @@ python pre_prepare_receptor.py --mode step0 --input_pdb receptor.pdb --ligand_sd
 ### Step 1: Prepare system for simulation
 python pre_prepare_receptor.py --mode step1 --input_pdb receptor.pdb --ligand_sdf ligand.sdf --output_dir prepared_system
 
-Replace receptor.pdb and ligand.sdf with your files. The --output_dir specifies where to save prepared systems.
 
 ---
 
