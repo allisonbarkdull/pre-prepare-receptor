@@ -39,12 +39,12 @@ $ micromamba install -c conda-forge prody
 $ git clone git@github.com:forlilab/autopath.git
 $ cd autopath
 ```
-# Option 1: allison-change branch
+### Option 1: allison-change branch
 ```bash
 $ git checkout allison-change
 $ pip install -e .
 ```
-# Option 2: lipids branch
+### Option 2: lipids branch
 ```bash
 $ git checkout lipids
 $ pip install -e .
@@ -74,7 +74,7 @@ $ python pre_prepare_receptor.py --mode step0 --input_pdb receptor.pdb --ligand_
 ```
 ### Step 1: Prepare system for simulation
 ```bash
-$ python pre_prepare_receptor.py --mode step1 --input_pdb receptor.pdb --ligand_sdf ligand.sdf --output_dir prepared_system
+$ python pre_prepare_receptor.py --mode step1 --input_pdb receptor.pdb --ligand_sdf ligand.sdf
 ```
 
 ---
