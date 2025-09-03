@@ -55,6 +55,15 @@ $ git clone git@github.com:forlilab/scrubber.git
 $ cd scrubber
 $ pip install -e .
 ```
+### Install pre-prepare-receptor
+
+```bash
+git clone git@github.com:allisonbarkdull/pre-prepare-receptor.git
+cd pre-prepare-receptor
+pip install -e .
+```
+
+---
 ---
 
 ## Usage
