@@ -184,9 +184,7 @@ def make_sdf_from_residue(
     """Extract a residue and save as SDF. Can accept a ligand PDB directly."""
     tmp_dir = tempfile.mkdtemp(prefix="res_extract_")
     try:
-        if ligand_pdb:
-            tmp_pdb = ligand_pdb  # just use the PDB provided
-        else:
+        if not ligand_pdb:
             tmp_pdb = os.path.join(tmp_dir, f"{resname}_{chain}.pdb")
             extract_residue_as_pdb(pdb_file, resname, chain, tmp_pdb)
 
@@ -202,9 +200,9 @@ def make_sdf_from_residue(
 
         # Create RDKit molecule
         if ligand_pdb:
-            rdkit_mol = Chem.MolFromPDBFile(tmp_pdb, removeHs=False)
+            rdkit_mol = create_rdkit_mol_from_smiles_and_pdb(smiles, ligand_pdb)
             if rdkit_mol is None:
-                raise ValueError(f"Could not load ligand PDB: {tmp_pdb}")
+                raise ValueError(f"Could not load ligand PDB: {ligand_pdb}")
         else:
             rdkit_mol = create_rdkit_mol_from_smiles_and_pdb(smiles, tmp_pdb)
 
@@ -958,7 +956,7 @@ def main():
             ligand_resname = list({res.getResname() for res in st.iterResidues()})[0]
             make_sdf_from_residue(args.input_pdb, args.ligand_resname, args.ligand_chain,
                                 out_sdf, ligand_pdb=args.ligand_pdb)
-            ligands_to_parametrize.append((ligand_resname, tmp_sdf))
+            ligands_to_parametrize.append((ligand_resname, out_sdf))
             print(f"→ Using ligand pdb: {args.ligand_pdb}")
         elif args.ligand_sdf:
             print(f"→ Using ligand SDF: {args.ligand_sdf}")
