@@ -85,8 +85,11 @@ $ python pre_prepare_receptor.py --mode step1 --input_pdb receptor.pdb --ligand_
 --ligand_sdf <SDF_FILE>  
   Path to the ligand SDF file.
 
+--ligand_pdb <SDF_FILE>  
+  Path to the ligand PDB file. Hydrogens will be added with scrubber in step 1.
+
 --ligand_resname <RESNAME>  
-  Ligand residue name in the PDB (e.g., ATP).
+  Ligand residue name in the PDB (e.g., ATP). Hydrogens will be added with scrubber in step 1.
 
 --ligand_chain <CHAIN_ID>  
   Ligand chain ID in the PDB (e.g., A).
@@ -95,14 +98,14 @@ $ python pre_prepare_receptor.py --mode step1 --input_pdb receptor.pdb --ligand_
   Ligand residue number (overrides resname selection).
 
 --ligand_smiles <SMILES>  
-  Optional SMILES string for ligand. If not provided, it will be fetched from RCSB and hydrogens added with scrubber. Explicit hydrogens define the protonation state.
+  Optional SMILES string for the ligand. If SMILES is not passed will fetch from RCSB and hydrogens will be added with scrubber. If the SMILES has explicit hydrogens, this will be the protonaton state simluated
 
 ### Step 0 Neighborhood Options
 --box_center <X Y Z>  
-  Box center for Step 0 neighborhood analysis (pass instead of ligand).
+  Box center (x y z) in Å for Step 0 neighborhood analysis. Pass this instead of a ligand.
 
 --box_lengths <X Y Z>  
-  Box side lengths for Step 0 (pass instead of ligand).
+  Box side lengths (x y z) in Å for Step 0 neighborhood analysis. Pass this instead of a ligand.
 
 --cutoff <FLOAT>  
   Neighborhood cutoff distance in Å (default: 5.0).
@@ -112,11 +115,17 @@ $ python pre_prepare_receptor.py --mode step1 --input_pdb receptor.pdb --ligand_
   Residues of waters to keep (e.g., 101 A:105 Z:301).
 
 --cofactor <NAME:VAL[:SMILES]>  
-  Cofactor specification. Repeatable.
+  Cofactor spec: NAME:VAL[:SMILES], VAL = sdf file or chain. Repeatable. 
+                          "Examples: --cofactor NAD:cofactor_nad.sdf "
+                            --cofactor EOH:B:'[O-]C([H])([H])C([H])([H])[H]' 
+                            If the SMILES has explicit hydrogens, this will be the protonation state simulated.
+
+--keep_all <NAME:VAL[:SMILES]>  
+keeps all waters and cofactors in the input pdb
 
 ### Protein Setup
 --soluble_protein  
-  Set up system for a soluble protein (no membrane).
+  Set up system for a soluble protein (no membrane). boo, tomato, tomato.
 
 --add-missing-residues  
   Add missing residues using PDBFixer.

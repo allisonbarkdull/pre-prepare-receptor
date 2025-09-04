@@ -1,0 +1,2 @@
+[console_scripts]
+pre_prepare_receptor = pre_prepare_receptor:main
