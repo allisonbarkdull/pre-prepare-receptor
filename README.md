@@ -70,11 +70,11 @@ pip install -e .
 
 ### Step 0: Analyze ligand neighborhood in a receptor
 ```bash
-python pre_prepare_receptor.py --mode step0 --input_pdb receptor.pdb --ligand_sdf ligand.sdf
+pre_prepare_receptor --mode step0 --input_pdb receptor.pdb --ligand_sdf ligand.sdf
 ```
 ### Step 1: Prepare system for simulation
 ```bash
-python pre_prepare_receptor.py --mode step1 --input_pdb receptor.pdb --ligand_sdf ligand.sdf
+pre_prepare_receptor --mode step1 --input_pdb receptor.pdb --ligand_sdf ligand.sdf
 ```
 
 ---
@@ -93,7 +93,7 @@ python pre_prepare_receptor.py --mode step1 --input_pdb receptor.pdb --ligand_sd
 ### Ligand Input Options
 --ligand_sdf <SDF_FILE>  
   Path to the ligand SDF file.
-
+OR
 --ligand_resname <RESNAME>  
   Ligand residue name in the PDB (e.g., ATP).
 
