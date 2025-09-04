@@ -151,4 +151,7 @@ keeps all waters and cofactors in the input pdb
   Specify alternative locations for residues. Repeatable.
 
 --set_template <RESID:CHAIN:VARIANT>  
-  Set residue variants for protonation states. Repeatable.
+  Set residue variants for protonation states.
+  Format: RESID:CHAIN:VARIANT (repeatable).
+  RESID must be an integer, CHAIN a single letter, VARIANT the desired residue name.
+  Example: --set_template 101:B:GLH 45:A HID
