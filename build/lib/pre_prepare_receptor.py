@@ -147,7 +147,7 @@ def create_rdkit_mol_from_smiles_and_pdb(smiles: str, pdb_file: str):
         raise RuntimeError("RDKit is required for this operation.")
 
     # check if SMILES has explicit hydrogens
-    explicit_Hs = ('[H]' in smiles)
+    explicit_Hs = ('[H]' in smiles) #TO DO this is a bit hacky
     template = Chem.MolFromSmiles(smiles)
     Chem.SanitizeMol(template, catchErrors=True)
 
@@ -183,21 +183,23 @@ def make_sdf_from_residue(
 ) -> str:
     """Extract a residue and save as SDF. Can accept a ligand PDB directly."""
     tmp_dir = tempfile.mkdtemp(prefix="res_extract_")
+    if ligand_pdb:
+        st = pr.parsePDB(ligand_pdb)
+        resname = list({res.getResname() for res in st.iterResidues()})[0]
+        smiles = get_ligand_smiles(resname)
     try:
         if not ligand_pdb:
             tmp_pdb = os.path.join(tmp_dir, f"{resname}_{chain}.pdb")
             extract_residue_as_pdb(pdb_file, resname, chain, tmp_pdb)
 
-        if not ligand_pdb:
             # Use passed SMILES if provided; otherwise fetch from RCSB
             if smiles:
                 logging.info(f"Using provided SMILES for {resname}:{chain}")
             else:
                 smiles = get_ligand_smiles(resname)
-                print(f' smiles: {smiles}')
                 if not smiles:
                     raise ValueError(f"Cannot fetch SMILES for {resname}; aborting SDF creation.")
-
+        print(f' smiles: {smiles}')
         # Create RDKit molecule
         if ligand_pdb:
             rdkit_mol = create_rdkit_mol_from_smiles_and_pdb(smiles, ligand_pdb)

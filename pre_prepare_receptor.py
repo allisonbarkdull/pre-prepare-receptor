@@ -184,7 +184,7 @@ def make_sdf_from_residue(
     """Extract a residue and save as SDF. Can accept a ligand PDB directly."""
     tmp_dir = tempfile.mkdtemp(prefix="res_extract_")
     if ligand_pdb:
-        st = pr.parsePDB(args.ligand_pdb)
+        st = pr.parsePDB(ligand_pdb)
         resname = list({res.getResname() for res in st.iterResidues()})[0]
         smiles = get_ligand_smiles(resname)
     try:
@@ -993,7 +993,7 @@ def main():
                     ligands_to_parametrize.append((name, out_sdf))
                     cofactor_resnames.append(name)
         if args.keep_all:
-            keep_waters = []
+            water_residues = []
             cofactor = []
             logging.info("`--keep_all` enabled: keeping ALL waters and ALL non-water HETATM residues as cofactors.")
 
@@ -1005,7 +1005,7 @@ def main():
             # Keep all waters
             for res in st.iterResidues():
                 if res.getResname().upper() in WATER_NAMES:
-                    keep_waters.append((res.getChid(), res.getResnum()))
+                    water_residues.append((res.getChid(), res.getResnum()))
 
             # Keep all other HETATM residues that are not waters or the ligand
             for res in st.iterResidues():
@@ -1017,7 +1017,7 @@ def main():
                 if res.ishetero:
                     cofactor.append(resname)
 
-            args.water_residues = keep_waters
+            args.water_residues = water_residues
             args.cofactor = cofactor
 
         # Decide whether to pass a str or a list into run()
