@@ -942,7 +942,35 @@ def main():
             else:
                 water_residues.append((None, int(item)))
 
-        if args.water_residues or template_variants:
+            if args.keep_all:
+            water_residues = []
+            cofactor = []
+            logging.info("`--keep_all` enabled: keeping ALL waters and ALL non-water HETATM residues as cofactors.")
+
+            # Parse the input PDB
+            st = pr.parsePDB(args.input_pdb)
+            if st is None:
+                raise ValueError(f"Could not parse {args.input_pdb}")
+
+            # Keep all waters
+            for res in st.iterResidues():
+                if res.getResname().upper() in WATER_NAMES:
+                    water_residues.append((res.getChid(), res.getResnum()))
+
+            # Keep all other HETATM residues that are not waters or the ligand
+            for res in st.iterResidues():
+                resname = res.getResname().upper()
+                if resname in WATER_NAMES:
+                    continue
+                if args.ligand_resname and resname == args.ligand_resname.upper():
+                    continue
+                if res.ishetero:
+                    cofactor.append(resname)
+
+            args.water_residues = water_residues
+            args.cofactor = cofactor
+        #adding back in solvent
+        if args.water_residues or template_variants or water_residues:
             print(f"→ Adding back selected waters and/or variants")
             with_water_pdb = os.path.join(base_out_dir, "1_2_water_and_variants.pdb")
             add_selected_waters_and_varients(input_pdb_for_fix, fixed_pdb, with_water_pdb, water_residues, template_variants)
@@ -992,33 +1020,6 @@ def main():
                     make_sdf_from_residue(args.input_pdb, name, val, out_sdf, smiles=smiles)
                     ligands_to_parametrize.append((name, out_sdf))
                     cofactor_resnames.append(name)
-        if args.keep_all:
-            water_residues = []
-            cofactor = []
-            logging.info("`--keep_all` enabled: keeping ALL waters and ALL non-water HETATM residues as cofactors.")
-
-            # Parse the input PDB
-            st = pr.parsePDB(args.input_pdb)
-            if st is None:
-                raise ValueError(f"Could not parse {args.input_pdb}")
-
-            # Keep all waters
-            for res in st.iterResidues():
-                if res.getResname().upper() in WATER_NAMES:
-                    water_residues.append((res.getChid(), res.getResnum()))
-
-            # Keep all other HETATM residues that are not waters or the ligand
-            for res in st.iterResidues():
-                resname = res.getResname().upper()
-                if resname in WATER_NAMES:
-                    continue
-                if args.ligand_resname and resname == args.ligand_resname.upper():
-                    continue
-                if res.ishetero:
-                    cofactor.append(resname)
-
-            args.water_residues = water_residues
-            args.cofactor = cofactor
 
         # Decide whether to pass a str or a list into run()
         if not ligands_to_parametrize:
