@@ -133,7 +133,7 @@ OR
                             --cofactor EOH:B:'[O-]C([H])([H])C([H])([H])[H]' 
                             If the SMILES has explicit hydrogens, this will be the protonation state simulated.
 
---keep_all <NAME:VAL[:SMILES]>  
+--keep_all
 keeps all waters and cofactors in the input pdb
 
 ### Protein Setup

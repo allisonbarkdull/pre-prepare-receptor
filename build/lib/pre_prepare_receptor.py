@@ -196,6 +196,7 @@ def make_sdf_from_residue(
                 logging.info(f"Using provided SMILES for {resname}:{chain}")
             else:
                 smiles = get_ligand_smiles(resname)
+                print(f' smiles: {smiles}')
                 if not smiles:
                     raise ValueError(f"Cannot fetch SMILES for {resname}; aborting SDF creation.")
 
