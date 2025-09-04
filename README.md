@@ -23,49 +23,58 @@ A Python tool to prepare receptor-ligand systems for docking.
 
 Install the required packages using Micromamba:
 ```bash
-$ micromamba install -c conda-forge openmm openmmtools openff-toolkit openmmforcefields espaloma pdbfixer parmed mdanalysis ambertools rdkit pandas deeptime pyemma
+micromamba install -c conda-forge openmm openmmtools openff-toolkit openmmforcefields espaloma pdbfixer parmed mdanalysis ambertools rdkit pandas deeptime pyemma
 ```
 ```bash
-$ micromamba install -c mdtools cvpack
+micromamba install -c mdtools cvpack
 ```
 ```bash
-$ micromamba install -c conda-forge prody
+micromamba install -c conda-forge prody
 ```
 
 # Clone and install dependencies
 
 ### Autopath
 ```bash
-$ git clone git@github.com:forlilab/autopath.git
-$ cd autopath
+git clone git@github.com:forlilab/autopath.git
+cd autopath
 ```
-# Option 1: allison-change branch
+### Option 1: allison-change branch
 ```bash
-$ git checkout allison-change
-$ pip install -e .
+git checkout allison-change
+pip install -e .
 ```
-# Option 2: lipids branch
+### Option 2: lipids branch
 ```bash
-$ git checkout lipids
-$ pip install -e .
+git checkout lipids
+pip install -e .
 ```
 ### Scrubber
 ```bash
-$ git clone git@github.com:forlilab/scrubber.git
-$ cd scrubber
-$ pip install -e .
+git clone git@github.com:forlilab/scrubber.git
+cd scrubber
+pip install -e .
 ```
+### Install pre-prepare-receptor
+
+```bash
+git clone git@github.com:allisonbarkdull/pre-prepare-receptor.git
+cd pre-prepare-receptor
+pip install -e .
+```
+
+---
 ---
 
 ## Usage
 
 ### Step 0: Analyze ligand neighborhood in a receptor
 ```bash
-$ python pre_prepare_receptor.py --mode step0 --input_pdb receptor.pdb --ligand_sdf ligand.sdf
+pre_prepare_receptor --mode step0 --input_pdb receptor.pdb --ligand_sdf ligand.sdf
 ```
 ### Step 1: Prepare system for simulation
 ```bash
-$ python pre_prepare_receptor.py --mode step1 --input_pdb receptor.pdb --ligand_sdf ligand.sdf --output_dir prepared_system
+pre_prepare_receptor --mode step1 --input_pdb receptor.pdb --ligand_sdf ligand.sdf
 ```
 
 ---
@@ -85,8 +94,12 @@ $ python pre_prepare_receptor.py --mode step1 --input_pdb receptor.pdb --ligand_
 --ligand_sdf <SDF_FILE>  
   Path to the ligand SDF file.
 
+OR
+
 --ligand_pdb <SDF_FILE>  
   Path to the ligand PDB file. Hydrogens will be added with scrubber in step 1.
+
+OR
 
 --ligand_resname <RESNAME>  
   Ligand residue name in the PDB (e.g., ATP). Hydrogens will be added with scrubber in step 1.
