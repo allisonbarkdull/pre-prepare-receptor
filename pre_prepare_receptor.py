@@ -942,7 +942,7 @@ def main():
             else:
                 water_residues.append((None, int(item)))
 
-            if args.keep_all:
+        if args.keep_all:
             water_residues = []
             cofactor = []
             logging.info("`--keep_all` enabled: keeping ALL waters and ALL non-water HETATM residues as cofactors.")
@@ -1072,7 +1072,6 @@ def main():
             out_dir=md_out_dir,
             restrained_minimization=True,
             protocol_fname=os.path.join(md_out_dir, "equilibration.json"),
-            timestep=0.002,
             is_membrane=True,
             verbose=2
         )
