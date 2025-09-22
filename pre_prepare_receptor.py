@@ -225,7 +225,13 @@ def ligand_coords_from_file(ligand_path: str) -> np.ndarray:
     """Read ligand coordinates from PDB or SDF."""
     ext = os.path.splitext(ligand_path)[1].lower()
     if ext == ".sdf":
-        return ligand_coords_from_file(ligand_path)
+        mol = Chem.SDMolSupplier(path, removeHs=False)[0]
+        if mol is None:
+            raise ValueError(f"Could not read ligand from {path}")
+        conf = mol.GetConformer()
+        return [(conf.GetAtomPosition(i).x,
+                conf.GetAtomPosition(i).y,
+                conf.GetAtomPosition(i).z) for i in range(mol.GetNumAtoms())]
     elif ext == ".pdb":
         st = pr.parsePDB(ligand_path)
         if st is None:

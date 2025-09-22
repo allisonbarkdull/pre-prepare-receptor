@@ -225,7 +225,7 @@ def ligand_coords_from_file(ligand_path: str) -> np.ndarray:
     """Read ligand coordinates from PDB or SDF."""
     ext = os.path.splitext(ligand_path)[1].lower()
     if ext == ".sdf":
-        return ligand_coords_from_sdf(ligand_path)
+        return ligand_coords_from_file(ligand_path)
     elif ext == ".pdb":
         st = pr.parsePDB(ligand_path)
         if st is None:

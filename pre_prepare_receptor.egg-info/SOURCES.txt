@@ -5,5 +5,4 @@ pre_prepare_receptor.egg-info/PKG-INFO
 pre_prepare_receptor.egg-info/SOURCES.txt
 pre_prepare_receptor.egg-info/dependency_links.txt
 pre_prepare_receptor.egg-info/entry_points.txt
-pre_prepare_receptor.egg-info/requires.txt
 pre_prepare_receptor.egg-info/top_level.txt
