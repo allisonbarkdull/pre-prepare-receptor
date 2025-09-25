@@ -146,36 +146,58 @@ def create_rdkit_mol_from_smiles_and_pdb(smiles: str, pdb_file: str):
     if Chem is None:
         raise RuntimeError("RDKit is required for this operation.")
 
-    # check if SMILES has explicit hydrogens
-    explicit_Hs = ('[H]' in smiles) #TO DO this is a bit hacky
+    explicit_Hs = "[H]" in smiles
     template = Chem.MolFromSmiles(smiles)
-    Chem.SanitizeMol(template, catchErrors=True)
 
+    # first try: sanitize template
+    try:
+        Chem.SanitizeMol(template)
+    except Exception:
+        return _meeko_fallback(pdb_file)
+
+    # load PDB molecule
     pdb_mol = Chem.MolFromPDBFile(pdb_file, removeHs=False)
     if pdb_mol is None:
         raise ValueError(f"Could not load PDB fragment: {pdb_file}")
 
-    ligand = AllChem.AssignBondOrdersFromTemplate(template, pdb_mol)
+    # second try: assign bond orders
+    try:
+        ligand = AllChem.AssignBondOrdersFromTemplate(template, pdb_mol)
+    except Exception:
+        return _meeko_fallback(pdb_file)
 
-    if explicit_Hs: # skip Scrubber entirely
+    # skip scrubber if explicit Hs
+    if explicit_Hs:
         return Chem.AddHs(ligand, addCoords=True)
 
     if Scrub is None:
         raise RuntimeError("Scrubber (Scrub) is required for protonation step.")
 
-    scrub = Scrub(ph_low=7.4, ph_high=7.4, skip_gen3d=True, skip_tautomers=True, skip_ringfix=True)
-    scrubbed = None
-    count = 0
-    for mol in scrub(ligand):
-        scrubbed = mol
-        count += 1
-    if count == 0 or scrubbed is None:
+    scrub = Scrub(ph_low=7.4, ph_high=7.4, skip_gen3d=True,
+                  skip_tautomers=True, skip_ringfix=True)
+    scrubbed = next(scrub(ligand), None)
+    if scrubbed is None:
         raise ValueError("Scrubber failed to produce a molecule.")
-    if count > 1:
-        print("[WARNING] Scrubber produced multiple molecules; using the first.")
 
     mol_h = Chem.AddHs(scrubbed, addCoords=True)
     return mol_h
+
+
+def _meeko_fallback(pdb_file):
+    """Fallback using Meeko for tricky ligands like heme."""
+    print(
+        "Using Meeko fallback. Double check protonation state!"
+    )
+    from meeko import Polymer, ResidueChemTemplates, MoleculePreparation
+    with open(pdb_file) as f:
+        pdb_str = f.read()
+    templates = ResidueChemTemplates.create_from_defaults()
+    mk_prep = MoleculePreparation()
+    polymer = Polymer.from_pdb_string(pdb_str, templates, mk_prep)
+
+    chain, resid = next(iter(polymer.monomers.keys())).split(":")
+    monomer = polymer.monomers[f"{chain}:{resid}"]
+    return monomer.rdkit_mol
 
 def make_sdf_from_residue(
     pdb_file: str, resname: str, chain: str, output_sdf: str,
@@ -184,9 +206,12 @@ def make_sdf_from_residue(
     """Extract a residue and save as SDF. Can accept a ligand PDB directly."""
     tmp_dir = tempfile.mkdtemp(prefix="res_extract_")
     if ligand_pdb:
-        st = pr.parsePDB(ligand_pdb)
-        resname = list({res.getResname() for res in st.iterResidues()})[0]
-        smiles = get_ligand_smiles(resname)
+        if smiles:
+            logging.info(f"Using provided SMILES for {resname}:{chain}")
+        else:
+            st = pr.parsePDB(ligand_pdb)
+            resname = list({res.getResname() for res in st.iterResidues()})[0]
+            smiles = get_ligand_smiles(resname)
     try:
         if not ligand_pdb:
             tmp_pdb = os.path.join(tmp_dir, f"{resname}_{chain}.pdb")
@@ -222,15 +247,28 @@ def make_sdf_from_residue(
 # STEP 0 FUNCTIONS (neighborhood)
 # ---------------------------
 def ligand_coords_from_file(ligand_path: str) -> np.ndarray:
-    """Read ligand coordinates from PDB or SDF."""
+    """Read ligand coordinates from PDB or SDF and return as Nx3 NumPy array."""
     ext = os.path.splitext(ligand_path)[1].lower()
+
     if ext == ".sdf":
-        return ligand_coords_from_file(ligand_path)
+        mol = Chem.SDMolSupplier(ligand_path, removeHs=False)[0]
+        if mol is None:
+            raise ValueError(f"Could not read ligand from {ligand_path}")
+        conf = mol.GetConformer()
+        coords = np.array(
+            [[conf.GetAtomPosition(i).x,
+              conf.GetAtomPosition(i).y,
+              conf.GetAtomPosition(i).z] for i in range(mol.GetNumAtoms())],
+            dtype=float
+        )
+        return select
+
     elif ext == ".pdb":
         st = pr.parsePDB(ligand_path)
         if st is None:
             raise ValueError(f"Cannot parse ligand PDB: {ligand_path}")
-        return st.getCoords()
+        return np.asarray(st.getCoords(), dtype=float)
+
     else:
         raise ValueError(f"Unsupported ligand file type: {ligand_path}")
 
