@@ -159,8 +159,6 @@ def create_rdkit_mol_from_smiles_and_pdb(smiles: str, pdb_file: str):
     pdb_mol = Chem.MolFromPDBFile(pdb_file, removeHs=False)
     if pdb_mol is None:
         raise ValueError(f"Could not load PDB fragment: {pdb_file}")
-
-    # second try: assign bond orders
     try:
         ligand = AllChem.AssignBondOrdersFromTemplate(template, pdb_mol)
     except Exception:
@@ -175,7 +173,12 @@ def create_rdkit_mol_from_smiles_and_pdb(smiles: str, pdb_file: str):
 
     scrub = Scrub(ph_low=7.4, ph_high=7.4, skip_gen3d=True,
                   skip_tautomers=True, skip_ringfix=True)
-    scrubbed = next(scrub(ligand), None)
+    mol_count = 0
+    for mol in scrub(ligand):
+        scrubbed = mol
+        mol_count += 1  # Increment the molecule count for each molecule generated
+    if mol_count > 1:
+        print("Warning: Scrubber generated multiple molecules.")
     if scrubbed is None:
         raise ValueError("Scrubber failed to produce a molecule.")
 
@@ -261,7 +264,7 @@ def ligand_coords_from_file(ligand_path: str) -> np.ndarray:
               conf.GetAtomPosition(i).z] for i in range(mol.GetNumAtoms())],
             dtype=float
         )
-        return select
+        return coords
 
     elif ext == ".pdb":
         st = pr.parsePDB(ligand_path)
@@ -1027,7 +1030,7 @@ def main():
             print(f"→ Using ligand pdb: {args.ligand_pdb}")
         elif args.ligand_sdf:
             print(f"→ Using ligand SDF: {args.ligand_sdf}")
-            ligands_to_parametrize.append(("LIG", args.ligand_sdf))
+            ligands_to_parametrize.append(("UNK", args.ligand_sdf))
         elif args.ligand_resname and args.ligand_chain:
             out_sdf = os.path.join(base_out_dir, f"{args.ligand_resname}_{args.ligand_chain}.sdf")
             make_sdf_from_residue(args.input_pdb, args.ligand_resname, args.ligand_chain, out_sdf, smiles=args.ligand_smiles)
