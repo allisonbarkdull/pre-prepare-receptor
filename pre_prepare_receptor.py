@@ -1113,7 +1113,7 @@ def main():
             restrained_minimization=True,
             protocol_fname=os.path.join(md_out_dir, "equilibration.json"),
             timestep=0.002,
-            is_membrane=True,
+            is_membrane=not args.soluble_protein,
             verbose=2
         )
         equilibration.run(pdb_file=f'{md_out_dir}/system.pdb', run_id="sys")
