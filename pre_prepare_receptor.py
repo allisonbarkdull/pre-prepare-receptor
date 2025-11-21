@@ -1069,10 +1069,10 @@ def main():
             ligands_arg = ligands_to_parametrize[0][1]  # just the sdf path string
             print(f"\nSingle ligand/cofactor to parametrize: {ligands_to_parametrize[0]}")
         else:
-            ligands_arg = ligands_to_parametrize
+            ligands_arg = [lig + (None,) for lig in ligands_to_parametrize]
             print("\nLigands/cofactors to be parametrized and added to the system:")
-            for lig_name, lig_path in ligands_to_parametrize:
-                print(f"  {lig_name} -> {lig_path}")
+            for ligand in ligands_to_parametrize:
+                print(f"  {ligand[0]} -> {ligand[1]}")
             print("The preparator will attempt to parametrize these and add them to the modeller.\n")
 
         combined_pdb = os.path.join(base_out_dir, "1_3_md_input_no_solvent.pdb")
@@ -1113,7 +1113,7 @@ def main():
             restrained_minimization=True,
             protocol_fname=os.path.join(md_out_dir, "equilibration.json"),
             timestep=0.002,
-            is_membrane=True,
+            is_membrane=not args.soluble_protein,
             verbose=2
         )
         equilibration.run(pdb_file=f'{md_out_dir}/system.pdb', run_id="sys")
