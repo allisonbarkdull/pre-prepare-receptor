@@ -1197,7 +1197,7 @@ def main():
         preparator = SystemPreparation(
                 forcefield=["amber14-all.xml", "amber14/tip3pfb.xml"],
                 lig_ff="espaloma",
-                allow_undefined_stereo=True,
+                # allow_undefined_stereo=True,
                 hydrogenMass=None,
                 boxShape="dodecahedron",
                 padding=0.01,
@@ -1226,7 +1226,6 @@ def main():
             out_dir=md_out_dir,
             restrained_minimization=True,
             protocol_fname=os.path.join(md_out_dir, "equilibration.json"),
-            timestep=0.002,
             is_membrane=not args.soluble_protein,
             verbose=2
         )
