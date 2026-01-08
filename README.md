@@ -128,10 +128,13 @@ OR
   Residues of waters to keep (e.g., 101 A:105 Z:301).
 
 --cofactor <NAME:VAL[:SMILES]>  
-  Cofactor spec: NAME:VAL[:SMILES], VAL = sdf file or chain. Repeatable. 
-                          "Examples: --cofactor NAD:cofactor_nad.sdf "
-                            --cofactor EOH:B:'[O-]C([H])([H])C([H])([H])[H]' 
-                            If the SMILES has explicit hydrogens, this will be the protonation state simulated.
+  Either extract from input PDB:  NAME:CHAIN:RESNUM[:SMILES]  optional SMILES
+  Or provide an SDF:              NAME:path/to/file.sdf[:SMILES]
+  Examples:"
+   --cofactor NAD:A:301
+   --cofactor HEM:cofactor_heme.sdf
+   --cofactor EOH:B:402:'[O-]C([H])([H])C([H])([H])[H]'"
+  If the SMILES has explicit hydrogens, this will be the protonaton state simulated.                    
 
 --keep_all
 keeps all waters and cofactors in the input pdb

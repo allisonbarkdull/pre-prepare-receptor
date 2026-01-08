@@ -124,21 +124,38 @@ def get_ligand_smiles(ligand_id: str) -> Optional[str]:
     return None
 
 
-def extract_residue_as_pdb(pdb_file: str, resname: str, chain: str, output_pdb: str) -> str:
+def extract_residue_as_pdb(
+    pdb_file: str,
+    resname: str,
+    chain: str,
+    resnum: Optional[int],
+    out_pdb: str
+) -> str:
     """
-    Extracts residues matching (resname + chain) and writes to output_pdb (ProDy writePDB).
-    If multiple matching residue copies present, all copies are written.
+    Extract a residue from a PDB file and save as a new PDB.
+    
+    Args:
+        pdb_file: Path to input PDB
+        resname: Residue name (e.g., ATP, HEM)
+        chain: Chain identifier (e.g., A)
+        resnum: Residue number (required for unambiguous selection)
+        out_pdb: Path to save the extracted residue PDB
     """
     st = pr.parsePDB(pdb_file)
-    if st is None:
-        raise ValueError(f"Could not parse {pdb_file}")
+
     sel_str = f"chain {chain} and resname {resname}"
+    if resnum is not None:
+        sel_str += f" and resnum {resnum}"
+
     sel = st.select(sel_str)
     if sel is None:
-        raise ValueError(f"No residue {resname} on chain {chain} found in {pdb_file}")
-    pr.writePDB(output_pdb, sel)
-    logging.info(f"Extracted {resname} (chain {chain}) to {output_pdb}")
-    return output_pdb
+        raise ValueError(
+            f"Could not find {resname} in chain {chain} resnum {resnum} "
+            f"in {pdb_file}"
+        )
+
+    pr.writePDB(out_pdb, sel)
+    return out_pdb
 
 
 def create_rdkit_mol_from_smiles_and_pdb(smiles: str, pdb_file: str):
@@ -204,7 +221,8 @@ def _meeko_fallback(pdb_file):
 
 def make_sdf_from_residue(
     pdb_file: str, resname: str, chain: str, output_sdf: str,
-    smiles: Optional[str] = None, ligand_pdb: Optional[str] = None
+    smiles: Optional[str] = None, ligand_pdb: Optional[str] = None,
+    resnum: Optional[int] = None
 ) -> str:
     """Extract a residue and save as SDF. Can accept a ligand PDB directly."""
     tmp_dir = tempfile.mkdtemp(prefix="res_extract_")
@@ -217,8 +235,14 @@ def make_sdf_from_residue(
             smiles = get_ligand_smiles(resname)
     try:
         if not ligand_pdb:
-            tmp_pdb = os.path.join(tmp_dir, f"{resname}_{chain}.pdb")
-            extract_residue_as_pdb(pdb_file, resname, chain, tmp_pdb)
+            tmp_pdb = os.path.join(tmp_dir, f"{resname}_{chain}_{resnum or 'UNK'}.pdb")
+            extract_residue_as_pdb(
+                pdb_file,
+                resname,
+                chain,
+                resnum,
+                tmp_pdb
+            )
 
             # Use passed SMILES if provided; otherwise fetch from RCSB
             if smiles:
@@ -618,11 +642,11 @@ def write_equilibration_json(water_residues_to_keep=None, cofactor_resnames=None
             "everything": selection
         },
         "minimization": [
-            {"name": "Minimization Stage1", "forces": [100.0]},
-            {"name": "Minimization Stage2", "forces": [500.0]},
-            {"name": "Minimization Stage2", "forces": [500.0]},
-            {"name": "Minimization Stage2", "forces": [500.0]},
-            {"name": "Minimization Stage2", "forces": [500.0]},
+            {"name": "Minimization Stage1", "forces": [200.0]},
+            {"name": "Minimization Stage2", "forces": [100.0]},
+            {"name": "Minimization Stage2", "forces": [50.0]},
+            {"name": "Minimization Stage2", "forces": [30.0]},
+            {"name": "Minimization Stage2", "forces": [25.0]},
         ],
         "warmup": {
             "T_initial": 100.0,
@@ -677,38 +701,38 @@ def combine_protein_and_ligands(input_pdb, ligands_to_parametrize, output_pdb, a
     print(f"→ Combined protein + ligands written to: {output_pdb}")
 
 
-def clean_pdb(input_pdb: str, output_pdb: str, water_residues: List[Tuple[Optional[str], int]] = None):
+def clean_pdb(
+    input_pdb: str,
+    output_pdb: str,
+    water_residues: List[Tuple[Optional[str], int]] = None,
+    hemes: Optional[List[Tuple[str, int]]] = None,
+    source_pdb_for_hemes: Optional[str] = None
+):
     """
     Clean a PDB file by removing unwanted residues while optionally keeping specific waters.
+    Optionally append HEM residues extracted directly from source_pdb_for_hemes (original input PDB)
+    to the cleaned output PDB. HEMs listed in `hemes` are NOT simulated/parametrized — they are
+    re-attached at the very end for downstream use (e.g., docking).
 
     Parameters
     ----------
     input_pdb : str
-        Path to the input PDB file.
+        Path to the input PDB file (the one to be cleaned).
     output_pdb : str
         Path to the output cleaned PDB file.
     water_residues : List[Tuple[Optional[str], int]], optional
         List of water residues to keep. Each entry is a tuple of (chain, resid).
-        - If `chain` is None, the residue number will be matched across all chains.
-
-    Behavior
-    --------
-    - Removes all waters (HOH), except those explicitly requested in `water_residues`.
-    - Removes POP, Na, and Cl residues.
-    - Prints which waters are kept and how many atoms are removed.
-    - Writes the cleaned structure to `output_pdb`.
-
-    Raises
-    ------
-    ValueError
-        If the input PDB cannot be parsed.
+    hemes : List[Tuple[str,int]], optional
+        List of HEM residues to append to the cleaned PDB. Each entry is (chain, resnum).
+    source_pdb_for_hemes : str, optional
+        Path to the original input PDB from which to extract HEM residues. REQUIRED if `hemes` is provided.
     """
     st = pr.parsePDB(input_pdb)
     if st is None:
         raise ValueError(f"Cannot parse {input_pdb}")
 
     water_residues = water_residues or []
-    to_remove_sel = "(resname HOH) or resname POP or resname NA or resname CL" # Base selection of unwanted atoms
+    to_remove_sel = "(resname HOH) or resname POP or resname NA or resname CL"  # Base selection of unwanted atoms
     if water_residues:
         keep_terms = []
         for chain, resid in water_residues:
@@ -729,8 +753,62 @@ def clean_pdb(input_pdb: str, output_pdb: str, water_residues: List[Tuple[Option
         keep_sel = f"not ({to_remove_sel})"
         st = st.select(keep_sel)
 
+    # write the cleaned structure first
     pr.writePDB(output_pdb, st)
     print(f"→ Cleaned PDB written to: {output_pdb}")
+
+    # If hemes requested, append HEM residues from the original/source PDB to the cleaned output.
+    if hemes:
+        if not source_pdb_for_hemes:
+            logging.warning("[WARNING] hemes specified for re-addition but no source_pdb_for_hemes provided. Skipping re-add.")
+            return
+
+        # Read cleaned PDB and remove trailing END line if present
+        with open(output_pdb, "r") as f:
+            lines = f.readlines()
+        lines = [ln for ln in lines if not ln.strip().startswith("END")]
+        with open(output_pdb, "w") as f:
+            f.writelines(lines)
+
+        appended_any = False
+        # For each heme (chain, resnum) extract from source PDB and append ATOM/HETATM/TER lines to output_pdb
+        for chain, resnum in hemes:
+            try:
+                tmp_out = tempfile.mktemp(suffix=f"_heme_{chain}_{resnum}.pdb")
+                # Use the extraction helper to write a small pdb for this residue
+                try:
+                    extract_residue_as_pdb(source_pdb_for_hemes, "HEM", chain, resnum, tmp_out)
+                except Exception as e:
+                    extract_residue_as_pdb(source_pdb_for_hemes, "HEB", chain, resnum, tmp_out)
+                    logging.warning(f"[WARNING] Failed to extract HEM {chain}:{resnum} from {source_pdb_for_hemes}: {e}")
+                    continue
+
+                # Read the temporary heme pdb and append relevant lines to the cleaned output
+                with open(tmp_out, "r") as fh:
+                    heme_lines = fh.readlines()
+
+                # Keep atom/HETATM/TER records
+                atom_lines = [ln for ln in heme_lines if ln.startswith(("ATOM", "HETATM", "TER"))]
+                if not atom_lines:
+                    logging.warning(f"[WARNING] No ATOM/HETATM lines found for extracted HEM {chain}:{resnum} in {tmp_out}.")
+                    continue
+
+                # Append to the cleaned PDB
+                with open(output_pdb, "a") as out_f:
+                    out_f.write("\n")  # ensure separation
+                    for ln in atom_lines:
+                        out_f.write(ln.rstrip("\n") + "\n")
+                os.remove(tmp_out)
+                appended_any = True
+                print(f"→ Appended HEM {chain}:{resnum} from {source_pdb_for_hemes} to {output_pdb}")
+            except Exception as e:
+                logging.warning(f"[WARNING] Exception while appending HEM {chain}:{resnum} to {output_pdb}: {e}")
+
+        # Write a single END line at the very end
+        if appended_any:
+            with open(output_pdb, "a") as out_f:
+                out_f.write("END\n")
+
 
 
 # ---------------------------
@@ -782,7 +860,7 @@ def main():
                         help="Ligand residue name in PDB (e.g., ATP)")
     parser.add_argument("--ligand_chain", type=str, default=None, help="Ligand chain ID (e.g., A)")
     parser.add_argument("--ligand_resnum", type=int, default=None,
-                        help="Ligand residue number (optional, overrides resname selection)")
+                        help="Ligand residue number")
     parser.add_argument("--ligand_smiles", type=str, default=None,
                         help="Optional SMILES string for the ligand. If SMILES is not passed will fetch from RCSB and add hydrogens with scrubber. If the SMILES has explicit hydrogens, this will be the protonaton state simluated")
 
@@ -797,10 +875,14 @@ def main():
     parser.add_argument("--water_residues", type=str, nargs='*', default=[],
                     help="Residue numbers or CHAIN:RESNUM of waters to keep (e.g., --water_residues 101 A:105 Z:301)")
     parser.add_argument("--cofactor", action='append', default=[],
-                        help=(
-                            "Cofactor spec: NAME:VAL[:SMILES], VAL = sdf file or chain. Repeatable. "
-                            "Examples: --cofactor NAD:cofactor_nad.sdf "
-                            "--cofactor EOH:B:'[O-]C([H])([H])C([H])([H])[H]' "
+                    help=(
+                        "Cofactor spec REQUIRED. Two options:\n"
+                        "  NAME:CHAIN:RESNUM[:SMILES]  (extract from input PDB)\n"
+                        "  NAME:path/to/file.sdf[:SMILES]  (provide an SDF)\n"
+                        "Examples:\n"
+                        "  --cofactor NAD:A:301\n"
+                        "  --cofactor HEM:cofactor_heme.sdf\n"
+                        "  --cofactor EOH:B:402:'[O-]C([H])([H])C([H])([H])[H]'"
                             "If the SMILES has explicit hydrogens, this will be the protonaton state simluated."))
     parser.add_argument("--keep_all", action="store_true", help="If set in step1, keep ALL waters and ALL HETATM residues (except the ligand) as cofactors.")
 
@@ -821,7 +903,7 @@ def main():
                             "Set residue variants for protonation states. "
                             "Format: RESID:CHAIN:VARIANT (repeatable). "
                             "RESID must be an integer, CHAIN a single letter, VARIANT the desired residue name. "
-                            "Example: --set_template 101:B:GLH 45:A HID"
+                            "Example: --set_template 101:B:GLH 45:A:HID"
                         ))
 
     args = parser.parse_args()
@@ -1018,6 +1100,9 @@ def main():
 
         # --- ligands & cofactors handling ---
         ligands_to_parametrize, cofactor_resnames = [], []
+        # collect HEM cofactors that should be re-added to the final cleaned PDB
+        # NOTE: these will NOT be parametrized nor added to ligands_to_parametrize/cofactor_resnames
+        hemes_to_readd: List[Tuple[str, int]] = []  # list of (chain, resnum)
 
         # Ligand handling
         if args.ligand_pdb:
@@ -1031,9 +1116,9 @@ def main():
         elif args.ligand_sdf:
             print(f"→ Using ligand SDF: {args.ligand_sdf}")
             ligands_to_parametrize.append(("UNK", args.ligand_sdf))
-        elif args.ligand_resname and args.ligand_chain:
-            out_sdf = os.path.join(base_out_dir, f"{args.ligand_resname}_{args.ligand_chain}.sdf")
-            make_sdf_from_residue(args.input_pdb, args.ligand_resname, args.ligand_chain, out_sdf, smiles=args.ligand_smiles)
+        elif args.ligand_resname and args.ligand_chain and args.ligand_resnum:
+            out_sdf = os.path.join(base_out_dir, f"{args.ligand_resname}_{args.ligand_chain}_{args.ligand_resnum}.sdf")
+            make_sdf_from_residue(args.input_pdb, args.ligand_resname, args.ligand_chain, out_sdf, smiles=args.ligand_smiles, resnum=args.ligand_resnum)
             ligands_to_parametrize.append((args.ligand_resname, out_sdf))
         else:
             print("→ No ligand specified; preparator will be run without explicit ligands.")
@@ -1042,25 +1127,54 @@ def main():
         if args.cofactor:
             for entry in args.cofactor:
                 parts = entry.split(":")
-                if len(parts) < 2:
-                    logging.error("Cofactor must be NAME:VAL[:SMILES]; skipping entry.")
-                    continue
                 name = parts[0].strip()
-                val = parts[1].strip()
-                smiles = parts[2].strip() if len(parts) == 3 else None
+                name_up = name.upper()
 
-                if os.path.isfile(val) and val.lower().endswith(".sdf"):
-                    print(f"→ Cofactor {name} provided as SDF file: {val}")
-                    ligands_to_parametrize.append((name, val))
+                if len(parts) < 2:
+                    logging.error("Cofactor must be NAME:CHAIN:RESNUM[:SMILES] or NAME:file.sdf[:SMILES].")
+                    continue
+
+                # Special handling for HEM: do NOT parametrize or include in cofactor_resnames.
+                if name_up == "HEM" or name_up == "HEB":
+                    # If user provided a CHAIN:RESNUM form, record it to re-add later.
+                    if len(parts) >= 3 and parts[1] and parts[2]:
+                        try:
+                            chain = parts[1].strip()
+                            resnum = int(parts[2].strip())
+                            hemes_to_readd.append((chain.upper(), resnum))
+                            print(f"[WARNING] Cofactor HEM detected at {chain.upper()}:{resnum} — HEM cannot be simulated. It will be removed from the MD/minimization and re-added to the final cleaned PDB.")
+                        except Exception as e:
+                            logging.warning(f"[WARNING] HEM specified but CHAIN:RESNUM parse failed for entry '{entry}': {e}. Skipping HEM.")
+                    else:
+                        # HEM provided as SDF or incomplete spec: can't reliably re-add from SDF
+                        if os.path.isfile(parts[1]) and parts[1].lower().endswith(".sdf"):
+                            logging.warning("[WARNING] HEM provided as an SDF file. This script will NOT parametrize or simulate HEM; "
+                                            "because it was provided as a file it cannot be automatically re-added from the original input PDB. Skipping.")
+                        else:
+                            logging.warning("[WARNING] HEM specified but no CHAIN:RESNUM provided. HEM will be skipped and will NOT be included in MD/minimization.")
+                    # do not add to ligands_to_parametrize or cofactor_resnames
+                    continue
+
+                # Case 1: file.sdf (non-HEM cofactors)
+                if os.path.isfile(parts[1]) and parts[1].lower().endswith(".sdf"):
+                    sdf_path = parts[1]
+                    smiles = parts[2].strip() if len(parts) == 3 else None
+                    print(f"→ Cofactor {name} provided as SDF file: {sdf_path}")
+                    ligands_to_parametrize.append((name, sdf_path))
                     cofactor_resnames.append(name)
-                else:
-                    # val is chain_id
-                    out_sdf = os.path.join(base_out_dir, f"{name}_{val}.sdf")
-                    print(f"→ Cofactor {name} provided as residue on chain {val}; generating SDF -> {out_sdf}")
-                    make_sdf_from_residue(args.input_pdb, name, val, out_sdf, smiles=smiles)
+
+                # Case 2: CHAIN:RESNUM (non-HEM cofactors)
+                elif len(parts) >= 3:
+                    chain = parts[1].strip()
+                    resnum = int(parts[2].strip())
+                    smiles = parts[3].strip() if len(parts) == 4 else None
+                    out_sdf = os.path.join(base_out_dir, f"{name}_{chain}_{resnum}.sdf")
+                    print(f"→ Cofactor {name} from PDB {chain}:{resnum}; generating SDF -> {out_sdf}")
+                    make_sdf_from_residue(args.input_pdb, name, chain, out_sdf, smiles=smiles, resnum=resnum)
                     ligands_to_parametrize.append((name, out_sdf))
                     cofactor_resnames.append(name)
-
+                else:
+                    logging.error(f"Invalid cofactor spec: {entry}")
         # Decide whether to pass a str or a list into run()
         if not ligands_to_parametrize:
             ligands_arg = None
@@ -1086,7 +1200,7 @@ def main():
                 allow_undefined_stereo=True,
                 hydrogenMass=None,
                 boxShape="dodecahedron",
-                padding=0.5,
+                padding=0.01,
                 ionicStrength=0.0,
                 is_membrane=not args.soluble_protein,
                 lipid_type='POPC' if not args.soluble_protein else None,
@@ -1116,11 +1230,17 @@ def main():
             is_membrane=True,
             verbose=2
         )
-        equilibration.run(pdb_file=f'{md_out_dir}/system.pdb', run_id="sys")
-        logging.info("Step 1 equilibration complete.")
 
-        clean_pdb(f"{md_out_dir}/sys_minim.pdb", f"{base_out_dir}/1_4_minimized.pdb", water_residues)
-        clean_pdb(f"{md_out_dir}/sys_equilibrated.pdb", f"{base_out_dir}/1_5_final.pdb", water_residues)
+        try:
+            equilibration.run(pdb_file=f'{md_out_dir}/system.pdb', run_id="sys")
+            logging.info("Step 1 equilibration complete.")
+            clean_pdb(f"{md_out_dir}/sys_minim.pdb", f"{base_out_dir}/1_4_minimized.pdb", water_residues, hemes=hemes_to_readd, source_pdb_for_hemes=args.input_pdb)
+            clean_pdb(f"{md_out_dir}/sys_equilibrated.pdb", f"{base_out_dir}/1_5_final.pdb", water_residues, hemes=hemes_to_readd, source_pdb_for_hemes=args.input_pdb)
+        except Exception as e:
+            logging.error(f"Equilibration failed: {e}")
+            logging.info("Attempting to clean minimized PDB anyway.")
+            clean_pdb(f"{md_out_dir}/sys_minim.pdb", f"{base_out_dir}/1_4_minimized.pdb", water_residues, hemes=hemes_to_readd, source_pdb_for_hemes=args.input_pdb)
+
 
 
 if __name__ == "__main__":
